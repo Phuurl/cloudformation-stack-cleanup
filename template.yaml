@@ -1,0 +1,48 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  cloudformation-stack-cleanup
+  
+  SAM Template for cloudformation-stack-cleanup
+
+Parameters:
+  RoleName:
+    Description: Role to pass to CloudFormation for deletion actions
+    Type: String
+  LifespanMinutes:
+    Description: Time after which a stack should be cleaned up (minutes)
+    Type: Number
+    Default: 60
+
+Globals:
+  Function:
+    Timeout: 60
+
+Resources:
+  CfnCleanupFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: cfn-cleanup/
+      Handler: cfn-cleanup
+      Runtime: go1.x
+      Architectures:
+        - x86_64
+      MemorySize: 256
+      Tracing: Active
+      Policies:
+        - AWSCloudFormationFullAccess
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action: iam:PassRole
+              Resource: !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${RoleName}"
+#      Events:
+      Environment:
+        Variables:
+          LIFESPAN_MINUTES: !Ref LifespanMinutes
+          ROLE_ARN: !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${RoleName}"
+
+Outputs:
+  CfnCleanupFunction:
+    Description: "Lambda Function ARN"
+    Value: !GetAtt CfnCleanupFunction.Arn
